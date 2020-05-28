@@ -121,6 +121,10 @@ set(${PROJECT_NAME}_source_files
     rtps/transport/TCPv4Transport.cpp
     rtps/transport/UDPv6Transport.cpp
     rtps/transport/TCPv6Transport.cpp
+    rtps/transport/gaps/GapsChannelResource.cpp
+    rtps/transport/gaps/GapsSenderResource.hpp
+    rtps/transport/gaps/GapsTransport.cpp
+    rtps/transport/gaps/GapsTransportDescriptor.cpp
     rtps/transport/test_UDPv4Transport.cpp
     rtps/transport/tcp/TCPControlMessage.cpp
     rtps/transport/tcp/RTCPMessageManager.cpp
