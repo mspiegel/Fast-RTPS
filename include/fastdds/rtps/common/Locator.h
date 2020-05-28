@@ -45,6 +45,7 @@ namespace rtps {
 #define LOCATOR_KIND_TCPv4 4
 #define LOCATOR_KIND_TCPv6 8
 #define LOCATOR_KIND_SHM 16
+#define LOCATOR_KIND_GAPS 32
 
 //!@brief Class Locator_t, uniquely identifies a communication channel for a particular transport.
 //For example, an address+port combination in the case of UDP.
@@ -60,10 +61,12 @@ public:
         * LOCATOR_KIND_TCPv4
         * LOCATOR_KIND_TCPv6
         * LOCATOR_KIND_SHM
+        * LOCATOR_KIND_GAPS
         */
     int32_t kind;
     uint32_t port;
     octet address[16];
+    std::string config;
 
     //!Default constructor
     Locator_t()
@@ -79,6 +82,7 @@ public:
     {
         port = loc.port;
         std::memcpy(address, loc.address, 16 * sizeof(octet));
+        config = loc.config;
     }
 
     //!Copy constructor
@@ -87,6 +91,7 @@ public:
     {
         port = loc.port;
         std::memcpy(address, loc.address, 16 * sizeof(octet));
+        config = loc.config;
     }
 
     //!Port constructor
@@ -107,11 +112,22 @@ public:
         LOCATOR_ADDRESS_INVALID(address);
     }
 
+    //!Kind and config constructor
+    Locator_t(
+            int32_t kindin,
+            std::string configin)
+        : kind(kindin)
+    {
+        config = configin;
+        LOCATOR_ADDRESS_INVALID(address);
+    }
+
     Locator_t& operator=(const Locator_t& loc)
     {
         kind = loc.kind;
         port = loc.port;
         std::memcpy(address, loc.address, 16 * sizeof(octet));
+        config = loc.config;
         return *this;
     }
 
@@ -177,6 +193,8 @@ inline bool operator==(const Locator_t&loc1, const Locator_t& loc2)
         return false;
     if (!std::equal(loc1.address, loc1.address + 16, loc2.address))
         return false;
+    if (loc1.config != loc2.config)
+        return false;
     return true;
 }
 
@@ -213,6 +231,10 @@ inline std::ostream& operator<<(std::ostream& output, const Locator_t& loc)
         {
             output << "SHM:" << loc.port;
         }
+    }
+    else if (loc.kind == LOCATOR_KIND_GAPS)
+    {
+        output << "GAPS:" << loc.config;
     }
 
     return output;
@@ -418,7 +440,7 @@ public:
             }
             else
             {
-                if (loc.kind == (*it).kind && loc.port == (*it).port)
+                if (loc.kind == (*it).kind && loc.port == (*it).port && loc.config == (*it).config)
                     return true;
             }
         }
