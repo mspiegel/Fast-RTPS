@@ -30,6 +30,8 @@ class TransportInterface;
  */
 typedef struct GapsTransportDescriptor : public TransportDescriptorInterface
 {
+    std::string m_gaps_config;
+
     virtual ~GapsTransportDescriptor()
     {
 

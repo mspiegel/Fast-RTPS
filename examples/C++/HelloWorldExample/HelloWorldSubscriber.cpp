@@ -21,6 +21,7 @@
 #include <fastrtps/participant/Participant.h>
 #include <fastrtps/attributes/ParticipantAttributes.h>
 #include <fastrtps/attributes/SubscriberAttributes.h>
+#include <fastrtps/transport/GapsTransportDescriptor.h>
 #include <fastrtps/subscriber/Subscriber.h>
 #include <fastrtps/Domain.h>
 
@@ -42,6 +43,9 @@ bool HelloWorldSubscriber::init()
     PParam.rtps.builtin.domainId = 0;
     PParam.rtps.builtin.discovery_config.leaseDuration = c_TimeInfinite;
     PParam.rtps.setName("Participant_sub");
+    std::shared_ptr<GapsTransportDescriptor> descriptor = std::make_shared<GapsTransportDescriptor>();
+    descriptor->m_gaps_config = "udp_socket,127.0.0.1,8080";
+    PParam.rtps.userTransports.push_back(descriptor);
     mp_participant = Domain::createParticipant(PParam);
     if(mp_participant==nullptr)
         return false;
@@ -58,7 +62,7 @@ bool HelloWorldSubscriber::init()
     Rparam.topic.historyQos.depth = 30;
     Rparam.topic.resourceLimitsQos.max_samples = 50;
     Rparam.topic.resourceLimitsQos.allocated_samples = 20;
-    Rparam.qos.m_reliability.kind = RELIABLE_RELIABILITY_QOS;
+    Rparam.qos.m_reliability.kind = BEST_EFFORT_RELIABILITY_QOS;
     Rparam.qos.m_durability.kind = TRANSIENT_LOCAL_DURABILITY_QOS;
     mp_subscriber = Domain::createSubscriber(mp_participant,Rparam,(SubscriberListener*)&m_listener);
 

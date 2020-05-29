@@ -169,17 +169,6 @@ private:
 protected:
 
     /**
-     * Creates an input channel
-     * @param locator Listening locator
-     * @param max_msg_size Maximum message size supported by the channel
-     * @throw std::exception& If the channel cannot be created
-     */
-    virtual GapsChannelResource* CreateInputChannelResource(
-            const fastrtps::rtps::Locator_t& locator,
-            uint32_t max_msg_size,
-            TransportReceiverInterface* receiver);
-
-    /**
      * Send a buffer to a destination
      */
     bool send(

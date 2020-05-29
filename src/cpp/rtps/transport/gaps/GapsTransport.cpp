@@ -16,6 +16,8 @@
 #include <cstring>
 #include <algorithm>
 
+#include "libpirate.h"
+
 #include <fastdds/rtps/transport/TransportInterface.h>
 #include <fastrtps/rtps/messages/CDRMessage.h>
 #include <fastrtps/log/Log.h>
@@ -76,6 +78,8 @@ bool GapsTransport::getDefaultMetatrafficMulticastLocators(
         LocatorList_t& locators,
         uint32_t metatraffic_multicast_port) const
 {
+    (void) locators;
+    (void) metatraffic_multicast_port;
     return false;
 }
 
@@ -83,6 +87,8 @@ bool GapsTransport::getDefaultMetatrafficUnicastLocators(
         LocatorList_t& locators,
         uint32_t metatraffic_unicast_port) const
 {
+    (void) locators;
+    (void) metatraffic_unicast_port;
     return false;
 }
 
@@ -90,13 +96,20 @@ bool GapsTransport::getDefaultUnicastLocators(
         LocatorList_t& locators,
         uint32_t unicast_port) const
 {
-    return false;
+    Locator_t locator;
+    locator.kind = LOCATOR_KIND_GAPS;
+    locator.config = configuration()->m_gaps_config;
+    locators.push_back(locator);
+    return true;
 }
 
 void GapsTransport::AddDefaultOutputLocator(
         LocatorList_t& defaultList)
 {
-    (void)defaultList;
+    Locator_t locator;
+    locator.kind = LOCATOR_KIND_GAPS;
+    locator.config = configuration()->m_gaps_config;
+    defaultList.push_back(locator);
 }
 
 const GapsTransportDescriptor* GapsTransport::configuration() const
@@ -118,19 +131,14 @@ bool GapsTransport::OpenInputChannel(
 
     if (!IsInputChannelOpen(locator))
     {
-        try
-        {
-            auto channel_resource = CreateInputChannelResource(locator, maxMsgSize, receiver);
-            input_channels_.push_back(channel_resource);
-        }
-        catch (std::exception& e)
-        {
-            (void)e;
-
-            logInfo(RTPS_MSG_OUT, std::string("CreateInputChannelResource failed for config ")
-                    << locator.config << " msg: " << e.what());
+        int gd = pirate_open_parse(locator.config.c_str(), O_RDONLY);
+        if (gd < 0) {
+            logError(RTPS_MSG_OUT, "GapsTransport error opening input channel " << locator.config
+                << " with msg: " << strerror(errno));
             return false;
         }
+        auto channel_resource = new GapsChannelResource(this, gd, maxMsgSize, locator, receiver);
+        input_channels_.push_back(channel_resource);
     }
 
     return true;
@@ -155,6 +163,7 @@ LocatorList_t GapsTransport::NormalizeLocator(
 bool GapsTransport::is_local_locator(
         const Locator_t& locator) const
 {
+    (void) locator;
     return false;
 }
 
@@ -187,7 +196,7 @@ bool GapsTransport::CloseInputChannel(
 
 void GapsTransport::CloseOutputChannel(int gapsDescriptor)
 {
-    // TODO pirate_close()
+    pirate_close(gapsDescriptor);
 }
 
 bool GapsTransport::DoInputLocatorsMatch(
@@ -220,18 +229,6 @@ bool GapsTransport::IsLocatorSupported(
     return locator.kind == transport_kind_;
 }
 
-GapsChannelResource* GapsTransport::CreateInputChannelResource(
-        const Locator_t& locator,
-        uint32_t maxMsgSize,
-        TransportReceiverInterface* receiver)
-{
-    (void) maxMsgSize;
-    int gd = 0;
-    // TODO: pirate_open
-    // TODO: delete this function
-    return new GapsChannelResource(this, gd, maxMsgSize, locator, receiver);
-}
-
 bool GapsTransport::OpenOutputChannel(
         SendResourceList& sender_resource_list,
         const Locator_t& locator)
@@ -254,20 +251,14 @@ bool GapsTransport::OpenOutputChannel(
         }
     }
 
-    try
-    {
-        int gd = 0;
-        // TODO: pirate_open()
-        sender_resource_list.emplace_back(
-            static_cast<SenderResource*>(new GapsSenderResource(*this, gd)));
-    }
-    catch (std::exception& e)
-    {
-        logError(RTPS_MSG_OUT, "GapsTransport error opening port " << std::to_string(locator.port)
-                                                                        << " with msg: " << e.what());
-
+    int gd = pirate_open_parse(configuration()->m_gaps_config.c_str(), O_WRONLY);
+    if (gd < 0) {
+        logError(RTPS_MSG_OUT, "GapsTransport error opening output channel " << locator.config
+            << " with msg: " << strerror(errno));
         return false;
     }
+    sender_resource_list.emplace_back(
+        static_cast<SenderResource*>(new GapsSenderResource(*this, gd)));
 
     return true;
 }
@@ -275,6 +266,7 @@ bool GapsTransport::OpenOutputChannel(
 Locator_t GapsTransport::RemoteToMainLocal(
         const Locator_t& remote) const
 {
+    (void) remote;
     return false;
 }
 
@@ -282,6 +274,8 @@ bool GapsTransport::transform_remote_locator(
         const Locator_t& remote_locator,
         Locator_t& result_locator) const
 {
+    (void) remote_locator;
+    (void) result_locator;
     return false;
 }
 
@@ -324,8 +318,14 @@ bool GapsTransport::send(
         const fastrtps::rtps::Locator_t& remote_locator,
         const std::chrono::microseconds& timeout)
 {
-    // TODO pirate_write()
-    return false;
+    (void) timeout;
+    ssize_t rv = pirate_write(gapsDescriptor, send_buffer, send_buffer_size);
+    if (rv < 0) {
+        logError(RTPS_MSG_OUT, "GapsTransport error writing to channel " << remote_locator.config
+            << " with msg: " << strerror(errno));
+        return false;
+    }
+    return true;
 }
 
 void GapsTransport::select_locators(
@@ -362,6 +362,8 @@ bool GapsTransport::fillMetatrafficMulticastLocator(
         Locator_t& locator,
         uint32_t metatraffic_multicast_port) const
 {
+    (void) locator;
+    (void) metatraffic_multicast_port;
     return false;
 }
 
@@ -369,6 +371,8 @@ bool GapsTransport::fillMetatrafficUnicastLocator(
         Locator_t& locator,
         uint32_t metatraffic_unicast_port) const
 {
+    (void) locator;
+    (void) metatraffic_unicast_port;
     return false;
 }
 
@@ -378,12 +382,25 @@ bool GapsTransport::configureInitialPeerLocator(
         uint32_t domainId,
         LocatorList_t& list) const
 {
-    return false;
+    (void) port_params;
+    (void) domainId;
+
+    if (locator.config.empty()) {
+        Locator_t auxloc(locator);
+        auxloc.config = configuration()->m_gaps_config;
+        list.push_back(auxloc);
+    } else {
+        list.push_back(locator);
+    }
+    return true;
 }
 
 bool GapsTransport::fillUnicastLocator(
         Locator_t& locator,
         uint32_t well_known_port) const
 {
-    return false;
+    if (locator.config.empty()) {
+        locator.config = configuration()->m_gaps_config;
+    }
+    return true;
 }

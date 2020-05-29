@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include "libpirate.h"
+
 #include <fastdds/rtps/transport/gaps/GapsTransport.h>
 #include <fastdds/rtps/transport/gaps/GapsChannelResource.h>
 #include <fastdds/rtps/messages/MessageReceiver.h>
@@ -31,7 +33,7 @@ GapsChannelResource::GapsChannelResource(
         TransportReceiverInterface* receiver)
     : ChannelResource(maxMsgSize)
     , message_receiver_(receiver)
-    , gapsDescriptor_(gapsDescriptor_)
+    , gapsDescriptor_(gapsDescriptor)
     , transport_(transport)
 {
     thread(std::thread(&GapsChannelResource::perform_listen_operation, this, locator));
@@ -75,50 +77,19 @@ bool GapsChannelResource::Receive(
         uint32_t& receive_buffer_size,
         Locator_t& remote_locator)
 {
-    try
-    {
-        // TODO pirate_read()
-        /*
-        asio::ip::udp::endpoint senderEndpoint;
-
-        size_t bytes = socket()->receive_from(asio::buffer(receive_buffer, receive_buffer_capacity), senderEndpoint);
-        receive_buffer_size = static_cast<uint32_t>(bytes);
-        if (receive_buffer_size > 0)
-        {
-            // This is not necessary anymore but it's left here for back compatibility with versions older than 1.8.1
-            if (receive_buffer_size == 13 && memcmp(receive_buffer, "EPRORTPSCLOSE", 13) == 0)
-            {
-                return false;
-            }
-            transport_->endpoint_to_locator(senderEndpoint, remote_locator);
-        }
-        return (receive_buffer_size > 0);
-        */
-    }
-    catch (const std::exception& error)
-    {
-        (void)error;
-        logWarning(RTPS_MSG_OUT, "Error receiving data: " << error.what() << " - " << message_receiver()
-            << " (" << this << ")");
+    ssize_t rv = pirate_read(gapsDescriptor_, receive_buffer, receive_buffer_capacity);
+    if (rv < 0) {
+        logError(RTPS_MSG_OUT, "GapsTransport error reading from channel " << remote_locator.config
+            << " with msg: " << strerror(errno));
         return false;
     }
+    receive_buffer_size = (uint32_t) rv;
+    return (receive_buffer_size > 0);
 }
 
 void GapsChannelResource::release()
 {
-    // TODO pirate_close()
-    /*
-    // Cancel all asynchronous operations associated with the socket.
-    socket()->cancel();
-    // Disable receives on the socket.
-    // shutdown always returns a 'shutdown: Transport endpoint is not connected' error,
-    // since the endpoint is indeed not connected. However, it unblocks the synchronous receive
-    // in Windows and Linux anyways, which is what we want.
-    asio::error_code ec;
-    socket()->shutdown(asio::socket_base::shutdown_type::shutdown_receive, ec);
-    // On OSX shutdown does not unblock the listening thread, but close does.
-    socket()->close();
-    */
+    pirate_close(gapsDescriptor_);
 }
 
 } // namespace rtps
