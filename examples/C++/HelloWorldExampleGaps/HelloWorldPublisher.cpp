@@ -22,9 +22,11 @@
 #include <fastrtps/attributes/ParticipantAttributes.h>
 #include <fastrtps/attributes/PublisherAttributes.h>
 #include <fastrtps/publisher/Publisher.h>
+#include <fastrtps/transport/GapsTransportDescriptor.h>
 #include <fastrtps/Domain.h>
 
 #include <thread>
+#include <fcntl.h>
 
 using namespace eprosima::fastrtps;
 using namespace eprosima::fastrtps::rtps;
@@ -47,6 +49,10 @@ bool HelloWorldPublisher::init()
     PParam.rtps.builtin.domainId = 0;
     PParam.rtps.builtin.discovery_config.leaseDuration = c_TimeInfinite;
     PParam.rtps.setName("Participant_pub");
+
+    std::shared_ptr<GapsTransportDescriptor> descriptor = std::make_shared<GapsTransportDescriptor>("udp_socket,127.0.0.1,8080", O_WRONLY);
+    PParam.rtps.userTransports.push_back(descriptor);
+
     mp_participant = Domain::createParticipant(PParam);
 
     if(mp_participant==nullptr)
@@ -64,9 +70,7 @@ bool HelloWorldPublisher::init()
     Wparam.topic.historyQos.depth = 30;
     Wparam.topic.resourceLimitsQos.max_samples = 50;
     Wparam.topic.resourceLimitsQos.allocated_samples = 20;
-    Wparam.times.heartbeatPeriod.seconds = 2;
-    Wparam.times.heartbeatPeriod.nanosec = 200*1000*1000;
-    Wparam.qos.m_reliability.kind = RELIABLE_RELIABILITY_QOS;
+    Wparam.qos.m_reliability.kind = BEST_EFFORT_RELIABILITY_QOS;
     mp_publisher = Domain::createPublisher(mp_participant,Wparam,(PublisherListener*)&m_listener);
     if(mp_publisher == nullptr)
         return false;
