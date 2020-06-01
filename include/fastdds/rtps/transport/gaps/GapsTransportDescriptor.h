@@ -31,6 +31,7 @@ class TransportInterface;
 typedef struct GapsTransportDescriptor : public TransportDescriptorInterface
 {
     std::string m_gaps_config;
+    int m_gaps_flags;
 
     virtual ~GapsTransportDescriptor()
     {
@@ -44,6 +45,8 @@ typedef struct GapsTransportDescriptor : public TransportDescriptorInterface
     }
 
     RTPS_DllAPI GapsTransportDescriptor();
+
+    RTPS_DllAPI GapsTransportDescriptor(std::string config, int flags);
 
     RTPS_DllAPI GapsTransportDescriptor(
             const GapsTransportDescriptor& t);

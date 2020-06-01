@@ -25,6 +25,8 @@
 #include <fastrtps/subscriber/Subscriber.h>
 #include <fastrtps/Domain.h>
 
+#include <fcntl.h>
+
 using namespace eprosima::fastrtps;
 using namespace eprosima::fastrtps::rtps;
 
@@ -43,8 +45,7 @@ bool HelloWorldSubscriber::init()
     PParam.rtps.builtin.domainId = 0;
     PParam.rtps.builtin.discovery_config.leaseDuration = c_TimeInfinite;
     PParam.rtps.setName("Participant_sub");
-    std::shared_ptr<GapsTransportDescriptor> descriptor = std::make_shared<GapsTransportDescriptor>();
-    descriptor->m_gaps_config = "udp_socket,127.0.0.1,8080";
+    std::shared_ptr<GapsTransportDescriptor> descriptor = std::make_shared<GapsTransportDescriptor>("udp_socket,127.0.0.1,8080", O_RDONLY);
     PParam.rtps.userTransports.push_back(descriptor);
     mp_participant = Domain::createParticipant(PParam);
     if(mp_participant==nullptr)

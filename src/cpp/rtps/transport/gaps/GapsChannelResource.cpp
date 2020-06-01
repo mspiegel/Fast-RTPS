@@ -35,6 +35,7 @@ GapsChannelResource::GapsChannelResource(
     , message_receiver_(receiver)
     , gapsDescriptor_(gapsDescriptor)
     , transport_(transport)
+    , locator_(locator)
 {
     thread(std::thread(&GapsChannelResource::perform_listen_operation, this, locator));
 }

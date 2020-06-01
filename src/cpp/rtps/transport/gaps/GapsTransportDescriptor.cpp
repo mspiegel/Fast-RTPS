@@ -34,6 +34,15 @@ GapsTransportDescriptor::GapsTransportDescriptor()
     : TransportDescriptorInterface(gaps_default_segment_size, s_maximumInitialPeersRange)
 {
     maxMessageSize = s_maximumMessageSize;
+    m_gaps_flags = -1;
+}
+
+GapsTransportDescriptor::GapsTransportDescriptor(std::string config, int flags)
+    : TransportDescriptorInterface(gaps_default_segment_size, s_maximumInitialPeersRange)
+{
+    maxMessageSize = s_maximumMessageSize;
+    m_gaps_config = config;
+    m_gaps_flags = flags;
 }
 
 GapsTransportDescriptor::GapsTransportDescriptor(
@@ -41,4 +50,6 @@ GapsTransportDescriptor::GapsTransportDescriptor(
     : TransportDescriptorInterface(gaps_default_segment_size, s_maximumInitialPeersRange)
 {
     maxMessageSize = t.max_message_size();
+    m_gaps_config = t.m_gaps_config;
+    m_gaps_flags = t.m_gaps_flags;
 }
